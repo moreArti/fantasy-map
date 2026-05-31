@@ -49,11 +49,23 @@ function ClickHandler({
 
 export default function MapView() {
   const [markers, setMarkers] = useState<MarkerType[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const bounds: [[number, number], [number, number]] = [
     [0, 0],
     [1000, 1000],
   ];
+
+  function loginAdmin() {
+    const password = prompt('Пароль админа');
+
+    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+        setIsAdmin(true);
+        alert('Админ-режим включён');
+    } else {
+        alert('Неверный пароль');
+    }
+  }
 
   async function loadMarkers() {
     const { data, error } = await supabase
@@ -70,6 +82,11 @@ export default function MapView() {
   }
 
   async function addMarker(x: number, y: number) {
+    if (!isAdmin) {
+        alert('Только админ может добавлять метки');
+        return;
+    }
+
     const title = prompt('Название метки');
 
     if (!title) return;
@@ -102,6 +119,18 @@ export default function MapView() {
 
   return (
     <div style={{ height: '100vh', width: '100%' }}>
+        <button
+            onClick={loginAdmin}
+            style={{
+                position: 'absolute',
+                zIndex: 1000,
+                top: 10,
+                right: 10,
+                padding: '8px 12px',
+            }}
+        >
+            Админ
+        </button>
       <MapContainer
         crs={CRS.Simple}
         bounds={bounds}
