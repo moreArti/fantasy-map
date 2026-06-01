@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   MapContainer,
   ImageOverlay,
   Marker,
   Popup,
   useMapEvents,
+  useMap,
 } from 'react-leaflet';
 
 import { CRS } from 'leaflet';
@@ -18,11 +19,13 @@ import { supabase } from '../lib/supabase';
 import Comments from './Comments';
 
 const icon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl:
-    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+  iconUrl: '/icon.png',
+
+  iconSize: [48, 48],
+
+  iconAnchor: [24, 48],
+
+  popupAnchor: [0, -48],
 });
 
 type MarkerType = {
@@ -39,7 +42,7 @@ function ClickHandler({
   onAdd: (x: number, y: number) => void;
 }) {
   useMapEvents({
-    click(e) {
+    dblclick(e) {
       onAdd(e.latlng.lng, e.latlng.lat);
     },
   });
@@ -47,13 +50,38 @@ function ClickHandler({
   return null;
 }
 
+function MapController({
+  onReady,
+}: {
+  onReady: (map: L.Map) => void;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    onReady(map);
+  }, [map, onReady]);
+
+  return null;
+}
+
+
 export default function MapView() {
   const [markers, setMarkers] = useState<MarkerType[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const mapRef = useRef<L.Map | null>(null);
+  const [search, setSearch] = useState('');
+  const suggestions = markers
+    .filter((marker) =>
+        marker.title.toLowerCase().includes(search.toLowerCase())
+    )
+    .slice(0, 5);
+
+  const IMAGE_WIDTH = 1920;
+  const IMAGE_HEIGHT = 1080;
 
   const bounds: [[number, number], [number, number]] = [
     [0, 0],
-    [1000, 1000],
+    [IMAGE_HEIGHT, IMAGE_WIDTH],
   ];
 
   function loginAdmin() {
@@ -66,6 +94,28 @@ export default function MapView() {
         alert('Неверный пароль');
     }
   }
+
+  function searchMarker(value: string) {
+    setSearch(value);
+  }
+
+  function openSearchedMarker() {
+    const found = markers.find(
+        (marker) => marker.title.toLowerCase() === search.toLowerCase()
+    );
+
+    if (!found || !mapRef.current) return;
+
+    mapRef.current.setView([found.y, found.x], 0);
+
+    setTimeout(() => {
+        const markerElement = document.querySelector(
+        `[data-marker-id="${found.id}"]`
+        ) as HTMLElement | null;
+
+        markerElement?.click();
+    }, 100);
+    }
 
   async function loadMarkers() {
     const { data, error } = await supabase
@@ -136,52 +186,108 @@ export default function MapView() {
   }, []);
 
   return (
-    <div style={{ height: '100vh', width: '100%' }}>
-        <button
-            onClick={loginAdmin}
-            style={{
-                position: 'absolute',
-                zIndex: 1000,
-                top: 10,
-                right: 10,
-                padding: '8px 12px',
-            }}
+    <div style={{ height: '100vh', width: '100%', position: 'relative' }}>
+        <div
+        style={{
+            position: 'absolute',
+            zIndex: 1000,
+            top: 10,
+            right: 10,
+            display: 'flex',
+            gap: 8,
+        }}
         >
+        <input
+            list="markers-list"
+            placeholder="Найти метку..."
+            value={search}
+            onChange={(e) => searchMarker(e.target.value)}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                openSearchedMarker();
+                }
+            }}
+            style={{
+                padding: '8px 12px',
+                borderRadius: 6,
+                border: '1px solid #ccc',
+                minWidth: 220,
+            }}
+        />
+
+        <datalist id="markers-list">
+            {suggestions.map((marker) => (
+                <option key={marker.id} value={marker.title} />
+            ))}
+        </datalist>
+
+        <button onClick={loginAdmin} style={{ padding: '8px 12px' }}>
             Админ
         </button>
-      <MapContainer
+        </div>
+
+        <MapContainer
+        crs={CRS.Simple}
+        bounds={bounds}
         maxBounds={bounds}
         maxBoundsViscosity={1.0}
         minZoom={0}
         attributionControl={false}
-        crs={CRS.Simple}
-        bounds={bounds}
+        doubleClickZoom={false}
         style={{ height: '100%', width: '100%' }}
-      >
-        <ImageOverlay url="/map.jpg" bounds={bounds} />
+        >
+        <MapController onReady={(map) => (mapRef.current = map)} />
+
+        <ImageOverlay url="/map.png" bounds={bounds} />
 
         <ClickHandler onAdd={addMarker} />
 
         {markers.map((marker) => (
-          <Marker
+            <Marker
             key={marker.id}
             position={[marker.y, marker.x]}
             icon={icon}
-          >
-            <Popup>
-              <h3>{marker.title}</h3>
-              <p>{marker.description}</p>
-              {isAdmin && (
-                <button onClick={() => deleteMarker(marker.id)}>
+            eventHandlers={{
+                add: (e) => {
+                const el = e.target.getElement();
+                if (el) {
+                    el.setAttribute('data-marker-id', String(marker.id));
+                }
+                },
+            }}
+            >
+            <Popup
+                minWidth={320}
+                maxWidth={420}
+                autoPan={true}
+                keepInView={false}
+                autoPanPadding={[80, 80]}
+            >
+                <div
+                style={{
+                    width: 360,
+                    maxHeight: 150,
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    paddingRight: 8,
+                }}
+                >
+                <h3>{marker.title}</h3>
+
+                <p>{marker.description}</p>
+
+                {isAdmin && (
+                    <button onClick={() => deleteMarker(marker.id)}>
                     Удалить метку
-                </button>
+                    </button>
                 )}
 
-              <Comments markerId={marker.id} isAdmin={isAdmin} />
+                <Comments markerId={marker.id} isAdmin={isAdmin} />
+                </div>
             </Popup>
-          </Marker>
+            </Marker>
         ))}
-      </MapContainer>
+        </MapContainer>
     </div>
   );
 }

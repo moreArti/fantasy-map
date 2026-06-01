@@ -103,7 +103,7 @@ export default function Comments({
         placeholder="Комментарий"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        style={{ width: '100%', marginBottom: 5 }}
+        style={{ width: '100%', marginBottom: 5, resize: 'none', }}
       />
 
       <button onClick={addComment}>
