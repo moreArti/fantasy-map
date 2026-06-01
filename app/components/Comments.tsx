@@ -11,8 +11,10 @@ type CommentType = {
 
 export default function Comments({
   markerId,
+  isAdmin,
 }: {
   markerId: number;
+  isAdmin: boolean;
 }) {
   const [comments, setComments] = useState<CommentType[]>([]);
   const [name, setName] = useState('');
@@ -51,6 +53,23 @@ export default function Comments({
     setText('');
   }
 
+  async function deleteComment(commentId: number) {
+    if (!confirm('Удалить комментарий?')) return;
+
+    const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+    if (error) {
+        alert('Ошибка удаления комментария');
+        console.error(error);
+        return;
+    }
+
+    setComments(comments.filter((comment) => comment.id !== commentId));
+    }
+
   useEffect(() => {
     loadComments();
   }, []);
@@ -65,6 +84,11 @@ export default function Comments({
         <div key={comment.id} style={{ marginBottom: 10 }}>
           <b>{comment.username}</b>
           <div>{comment.text}</div>
+          {isAdmin && (
+        <button onClick={() => deleteComment(comment.id)}>
+            Удалить
+        </button>
+        )}
         </div>
       ))}
 

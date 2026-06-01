@@ -112,6 +112,24 @@ export default function MapView() {
 
     setMarkers([...markers, data]);
   }
+  async function deleteMarker(markerId: number) {
+    if (!isAdmin) return;
+
+    if (!confirm('Удалить метку и все комментарии к ней?')) return;
+
+    const { error } = await supabase
+        .from('markers')
+        .delete()
+        .eq('id', markerId);
+
+    if (error) {
+        alert('Ошибка удаления метки');
+        console.error(error);
+        return;
+    }
+
+    setMarkers(markers.filter((marker) => marker.id !== markerId));
+    }
 
   useEffect(() => {
     loadMarkers();
@@ -132,6 +150,10 @@ export default function MapView() {
             Админ
         </button>
       <MapContainer
+        maxBounds={bounds}
+        maxBoundsViscosity={1.0}
+        minZoom={0}
+        attributionControl={false}
         crs={CRS.Simple}
         bounds={bounds}
         style={{ height: '100%', width: '100%' }}
@@ -149,8 +171,13 @@ export default function MapView() {
             <Popup>
               <h3>{marker.title}</h3>
               <p>{marker.description}</p>
+              {isAdmin && (
+                <button onClick={() => deleteMarker(marker.id)}>
+                    Удалить метку
+                </button>
+                )}
 
-              <Comments markerId={marker.id} />
+              <Comments markerId={marker.id} isAdmin={isAdmin} />
             </Popup>
           </Marker>
         ))}
