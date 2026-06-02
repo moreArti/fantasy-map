@@ -21,11 +21,11 @@ import Comments from './Comments';
 const icon = L.icon({
   iconUrl: '/icon.png',
 
-  iconSize: [48, 48],
+  iconSize: [96, 96],
 
-  iconAnchor: [24, 48],
+  iconAnchor: [48, 72],
 
-  popupAnchor: [0, -48],
+  popupAnchor: [0, -96],
 });
 
 type MarkerType = {
@@ -76,8 +76,8 @@ export default function MapView() {
     )
     .slice(0, 5);
 
-  const IMAGE_WIDTH = 1920;
-  const IMAGE_HEIGHT = 1080;
+  const IMAGE_WIDTH = 3840;
+  const IMAGE_HEIGHT = 2160;
 
   const bounds: [[number, number], [number, number]] = [
     [0, 0],
@@ -231,14 +231,15 @@ export default function MapView() {
         bounds={bounds}
         maxBounds={bounds}
         maxBoundsViscosity={1.0}
-        minZoom={0}
+        minZoom={-1}
         attributionControl={false}
         doubleClickZoom={false}
         style={{ height: '100%', width: '100%' }}
         >
         <MapController onReady={(map) => (mapRef.current = map)} />
 
-        <ImageOverlay url="/map.png" bounds={bounds} />
+
+        <ImageOverlay url="/map-4.png" bounds={bounds} />
 
         <ClickHandler onAdd={addMarker} />
 
@@ -257,6 +258,7 @@ export default function MapView() {
             }}
             >
             <Popup
+                offset={[0, 60]}
                 minWidth={320}
                 maxWidth={420}
                 autoPan={true}
