@@ -49,3 +49,10 @@ body {
   line-height: 1.35 !important;
   color: #2b1d0e !important;
 }
+
+.popup-below .leaflet-popup-tip-container {
+  top: -17px !important;
+  bottom: auto !important;
+  transform: rotate(180deg) !important;
+}
+

@@ -78,6 +78,7 @@ export default function MapView() {
 
   const IMAGE_WIDTH = 3840;
   const IMAGE_HEIGHT = 2160;
+  const POPUP_Y_THRESHOLD = IMAGE_HEIGHT * 0.75;
 
   const bounds: [[number, number], [number, number]] = [
     [0, 0],
@@ -239,56 +240,64 @@ export default function MapView() {
         <MapController onReady={(map) => (mapRef.current = map)} />
 
 
-        <ImageOverlay url="/map-4.png" bounds={bounds} />
+        <ImageOverlay url="/map.png" bounds={bounds} />
 
         <ClickHandler onAdd={addMarker} />
 
-        {markers.map((marker) => (
-            <Marker
-            key={marker.id}
-            position={[marker.y, marker.x]}
-            icon={icon}
-            eventHandlers={{
-                add: (e) => {
-                const el = e.target.getElement();
-                if (el) {
-                    el.setAttribute('data-marker-id', String(marker.id));
-                }
-                },
-            }}
-            >
-            <Popup
-                offset={[0, 60]}
-                minWidth={320}
-                maxWidth={420}
-                autoPan={true}
-                keepInView={false}
-                autoPanPadding={[80, 80]}
-            >
-                <div
-                style={{
-                    width: 360,
-                    maxHeight: 150,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    paddingRight: 8,
+        {markers.map((marker) => {
+            const isPopupBelow = marker.y > POPUP_Y_THRESHOLD;
+
+            const popupOffset: [number, number] = isPopupBelow ? [0, 270] : [0, 60];
+            const popupClassName = isPopupBelow ? 'popup-below' : 'popup-above';
+
+            return (
+                <Marker
+                key={marker.id}
+                position={[marker.y, marker.x]}
+                icon={icon}
+                eventHandlers={{
+                    add: (e) => {
+                    const el = e.target.getElement();
+                    if (el) {
+                        el.setAttribute('data-marker-id', String(marker.id));
+                    }
+                    },
                 }}
                 >
-                <h3>{marker.title}</h3>
+                <Popup
+                    className={popupClassName}
+                    offset={popupOffset}
+                    minWidth={220}
+                    maxWidth={320}
+                    autoPan={true}
+                    keepInView={false}
+                    autoPanPadding={[80, 80]}
+                >
+                    <div
+                    style={{
+                        width: 260,
+                        maxHeight: 150,
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        paddingRight: 8,
+                    }}
+                    >
+                    <h3>{marker.title}</h3>
 
-                <p>{marker.description}</p>
+                    <p>{marker.description}</p>
 
-                {isAdmin && (
-                    <button onClick={() => deleteMarker(marker.id)}>
-                    Удалить метку
-                    </button>
-                )}
+                    {isAdmin && (
+                        <button onClick={() => deleteMarker(marker.id)}>
+                        Удалить метку
+                        </button>
+                    )}
 
-                <Comments markerId={marker.id} isAdmin={isAdmin} />
-                </div>
-            </Popup>
-            </Marker>
-        ))}
+                    <Comments markerId={marker.id} isAdmin={isAdmin} />
+                    </div>
+                </Popup>
+                </Marker>
+            );
+            })}
         </MapContainer>
     </div>
   );
