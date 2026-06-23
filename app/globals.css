@@ -56,3 +56,30 @@ body {
   transform: rotate(180deg) !important;
 }
 
+
+.popup-btn {
+  background: #8b6b4a;
+  color: #f4e6cc;
+  border: 1px solid #5a3d22;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+
+  font-family: var(--font-cinzel);
+  font-size: 15px;
+
+  transition: all 0.2s ease;
+}
+
+.popup-btn:hover {
+  background: #a07a53;
+}
+
+.popup-btn-danger {
+  background: #6a2d2d;
+  border-color: #421717;
+}
+
+.popup-btn-danger:hover {
+  background: #873838;
+}

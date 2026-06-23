@@ -181,6 +181,35 @@ export default function MapView() {
 
     setMarkers(markers.filter((marker) => marker.id !== markerId));
     }
+  async function editMarkerDescription(markerId: number, currentDescription: string | null) {
+    if (!isAdmin) return;
+
+    const newDescription = prompt(
+        'Новое описание метки',
+        currentDescription || ''
+    );
+
+    if (newDescription === null) return;
+
+    const { error } = await supabase
+        .from('markers')
+        .update({ description: newDescription })
+        .eq('id', markerId);
+
+    if (error) {
+        alert('Ошибка редактирования метки');
+        console.error(error);
+        return;
+    }
+
+    setMarkers(
+        markers.map((marker) =>
+        marker.id === markerId
+            ? { ...marker, description: newDescription }
+            : marker
+        )
+    );
+    }
 
   useEffect(() => {
     loadMarkers();
@@ -287,9 +316,22 @@ export default function MapView() {
                     <p>{marker.description}</p>
 
                     {isAdmin && (
-                        <button onClick={() => deleteMarker(marker.id)}>
-                        Удалить метку
-                        </button>
+                        <>
+                            <button
+                            className="popup-btn"
+                            onClick={() =>
+                                editMarkerDescription(marker.id, marker.description)
+                            }
+                            >
+                            Редактировать описание
+                            </button>
+
+                            <button
+                            className="popup-btn popup-btn-danger"
+                            onClick={() => deleteMarker(marker.id)}>
+                            Удалить метку
+                            </button>
+                        </>
                     )}
 
                     <Comments markerId={marker.id} isAdmin={isAdmin} />
