@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  MapContainer,
   ImageOverlay,
+  MapContainer,
   Marker,
+  Polygon,
   Popup,
-  useMapEvents,
   useMap,
+  useMapEvents,
 } from 'react-leaflet';
 
 import { CRS } from 'leaflet';
@@ -15,18 +16,26 @@ import L from 'leaflet';
 
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '../lib/supabase';
-
 import Comments from './Comments';
 
 const icon = L.icon({
   iconUrl: '/icon.png',
-
   iconSize: [96, 96],
-
   iconAnchor: [48, 72],
-
   popupAnchor: [0, -96],
 });
+
+type ZonePoint = [number, number];
+type CreationMode = 'none' | 'marker' | 'zone';
+type SearchResultType = 'marker' | 'zone';
+
+type ZoneType = {
+  id: number;
+  title: string;
+  description: string | null;
+  color: string;
+  coordinates: ZonePoint[];
+};
 
 type MarkerType = {
   id: number;
@@ -36,25 +45,39 @@ type MarkerType = {
   description: string | null;
 };
 
-function ClickHandler({
-  onAdd,
+type SearchResult = {
+  key: string;
+  id: number;
+  type: SearchResultType;
+  title: string;
+};
+
+function MapInteractionHandler({
+  creationMode,
+  onAddMarker,
+  onAddZonePoint,
 }: {
-  onAdd: (x: number, y: number) => void;
+  creationMode: CreationMode;
+  onAddMarker: (x: number, y: number) => Promise<void>;
+  onAddZonePoint: (point: ZonePoint) => void;
 }) {
   useMapEvents({
-    dblclick(e) {
-      onAdd(e.latlng.lng, e.latlng.lat);
+    async click(e) {
+      if (creationMode === 'marker') {
+        await onAddMarker(e.latlng.lng, e.latlng.lat);
+        return;
+      }
+
+      if (creationMode === 'zone') {
+        onAddZonePoint([e.latlng.lat, e.latlng.lng]);
+      }
     },
   });
 
   return null;
 }
 
-function MapController({
-  onReady,
-}: {
-  onReady: (map: L.Map) => void;
-}) {
+function MapController({ onReady }: { onReady: (map: L.Map) => void }) {
   const map = useMap();
 
   useEffect(() => {
@@ -64,17 +87,19 @@ function MapController({
   return null;
 }
 
-
 export default function MapView() {
   const [markers, setMarkers] = useState<MarkerType[]>([]);
+  const [zones, setZones] = useState<ZoneType[]>([]);
+  const [creationMode, setCreationMode] = useState<CreationMode>('none');
+  const [draftZone, setDraftZone] = useState<ZonePoint[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
-  const mapRef = useRef<L.Map | null>(null);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const suggestions = markers
-    .filter((marker) =>
-        marker.title.toLowerCase().includes(search.toLowerCase())
-    )
-    .slice(0, 5);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRefs = useRef<Record<number, L.Marker>>({});
+  const zoneRefs = useRef<Record<number, L.Polygon>>({});
 
   const IMAGE_WIDTH = 3840;
   const IMAGE_HEIGHT = 2160;
@@ -85,38 +110,184 @@ export default function MapView() {
     [IMAGE_HEIGHT, IMAGE_WIDTH],
   ];
 
+  const allSearchResults: SearchResult[] = [
+    ...markers.map((marker) => ({
+      key: `marker-${marker.id}`,
+      id: marker.id,
+      type: 'marker' as const,
+      title: marker.title,
+    })),
+    ...zones.map((zone) => ({
+      key: `zone-${zone.id}`,
+      id: zone.id,
+      type: 'zone' as const,
+      title: zone.title,
+    })),
+  ];
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const suggestions = normalizedSearch
+    ? allSearchResults
+        .filter((result) => result.title.toLowerCase().includes(normalizedSearch))
+        .sort((a, b) => {
+          const aStarts = a.title.toLowerCase().startsWith(normalizedSearch) ? 0 : 1;
+          const bStarts = b.title.toLowerCase().startsWith(normalizedSearch) ? 0 : 1;
+          return aStarts - bStarts || a.title.localeCompare(b.title, 'ru');
+        })
+        .slice(0, 5)
+    : [];
+
   function loginAdmin() {
     const password = prompt('Пароль админа');
 
     if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
-        setIsAdmin(true);
-        alert('Админ-режим включён');
+      setIsAdmin(true);
+      alert('Админ-режим включён');
     } else {
-        alert('Неверный пароль');
+      alert('Неверный пароль');
     }
   }
 
-  function searchMarker(value: string) {
-    setSearch(value);
+  function cancelCreation() {
+    setCreationMode('none');
+    setDraftZone([]);
+    setIsAddMenuOpen(false);
   }
 
-  function openSearchedMarker() {
-    const found = markers.find(
-        (marker) => marker.title.toLowerCase() === search.toLowerCase()
+  function startAddingMarker() {
+    if (!isAdmin) return;
+    setDraftZone([]);
+    setCreationMode('marker');
+    setIsAddMenuOpen(false);
+  }
+
+  function startDrawingZone() {
+    if (!isAdmin) return;
+    setDraftZone([]);
+    setCreationMode('zone');
+    setIsAddMenuOpen(false);
+  }
+
+  function openSearchResult(result?: SearchResult) {
+    const chosen =
+      result ||
+      allSearchResults.find(
+        (item) => item.title.toLowerCase() === normalizedSearch
+      ) ||
+      suggestions[0];
+
+    if (!chosen || !mapRef.current) return;
+
+    setSearch(chosen.title);
+    setIsSearchOpen(false);
+
+    if (chosen.type === 'marker') {
+      const marker = markers.find((item) => item.id === chosen.id);
+      if (!marker) return;
+
+      mapRef.current.setView([marker.y, marker.x], 0);
+      window.setTimeout(() => markerRefs.current[marker.id]?.openPopup(), 150);
+      return;
+    }
+
+    const zone = zones.find((item) => item.id === chosen.id);
+    if (!zone || zone.coordinates.length < 3) return;
+
+    const zoneBounds = L.latLngBounds(zone.coordinates);
+    mapRef.current.fitBounds(zoneBounds, {
+      padding: [100, 100],
+      maxZoom: 1,
+    });
+    window.setTimeout(() => zoneRefs.current[zone.id]?.openPopup(), 200);
+  }
+
+  async function loadZones() {
+    const { data, error } = await supabase
+      .from('zones')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setZones((data || []) as ZoneType[]);
+  }
+
+  async function finishDrawingZone() {
+    if (draftZone.length < 3) {
+      alert('Для зоны нужно поставить минимум 3 точки');
+      return;
+    }
+
+    const title = prompt('Название зоны');
+    if (!title) return;
+
+    const description = prompt('Описание зоны') || '';
+    const color = prompt('Цвет зоны в HEX', '#b45309') || '#b45309';
+
+    const { data, error } = await supabase
+      .from('zones')
+      .insert({
+        title,
+        description,
+        color,
+        coordinates: draftZone,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      alert('Ошибка сохранения зоны');
+      return;
+    }
+
+    setZones((current) => [...current, data as ZoneType]);
+    cancelCreation();
+  }
+
+  async function deleteZone(zoneId: number) {
+    if (!isAdmin || !confirm('Удалить эту зону?')) return;
+
+    const { error } = await supabase.from('zones').delete().eq('id', zoneId);
+
+    if (error) {
+      console.error(error);
+      alert('Ошибка удаления зоны');
+      return;
+    }
+
+    setZones((current) => current.filter((zone) => zone.id !== zoneId));
+  }
+
+  async function editZoneDescription(
+    zoneId: number,
+    currentDescription: string | null
+  ) {
+    if (!isAdmin) return;
+
+    const description = prompt('Новое описание зоны', currentDescription || '');
+    if (description === null) return;
+
+    const { error } = await supabase
+      .from('zones')
+      .update({ description })
+      .eq('id', zoneId);
+
+    if (error) {
+      console.error(error);
+      alert('Ошибка редактирования зоны');
+      return;
+    }
+
+    setZones((current) =>
+      current.map((zone) =>
+        zone.id === zoneId ? { ...zone, description } : zone
+      )
     );
-
-    if (!found || !mapRef.current) return;
-
-    mapRef.current.setView([found.y, found.x], 0);
-
-    setTimeout(() => {
-        const markerElement = document.querySelector(
-        `[data-marker-id="${found.id}"]`
-        ) as HTMLElement | null;
-
-        markerElement?.click();
-    }, 100);
-    }
+  }
 
   async function loadMarkers() {
     const { data, error } = await supabase
@@ -133,25 +304,16 @@ export default function MapView() {
   }
 
   async function addMarker(x: number, y: number) {
-    if (!isAdmin) {
-        alert('Только админ может добавлять метки');
-        return;
-    }
+    if (!isAdmin || creationMode !== 'marker') return;
 
     const title = prompt('Название метки');
-
     if (!title) return;
 
     const description = prompt('Описание') || '';
 
     const { data, error } = await supabase
       .from('markers')
-      .insert({
-        x,
-        y,
-        title,
-        description,
-      })
+      .insert({ x, y, title, description })
       .select()
       .single();
 
@@ -161,102 +323,224 @@ export default function MapView() {
       return;
     }
 
-    setMarkers([...markers, data]);
+    setMarkers((current) => [...current, data as MarkerType]);
+    setCreationMode('none');
   }
+
   async function deleteMarker(markerId: number) {
     if (!isAdmin) return;
-
     if (!confirm('Удалить метку и все комментарии к ней?')) return;
 
     const { error } = await supabase
-        .from('markers')
-        .delete()
-        .eq('id', markerId);
+      .from('markers')
+      .delete()
+      .eq('id', markerId);
 
     if (error) {
-        alert('Ошибка удаления метки');
-        console.error(error);
-        return;
+      alert('Ошибка удаления метки');
+      console.error(error);
+      return;
     }
 
-    setMarkers(markers.filter((marker) => marker.id !== markerId));
-    }
-  async function editMarkerDescription(markerId: number, currentDescription: string | null) {
+    setMarkers((current) =>
+      current.filter((marker) => marker.id !== markerId)
+    );
+  }
+
+  async function editMarkerDescription(
+    markerId: number,
+    currentDescription: string | null
+  ) {
     if (!isAdmin) return;
 
     const newDescription = prompt(
-        'Новое описание метки',
-        currentDescription || ''
+      'Новое описание метки',
+      currentDescription || ''
     );
 
     if (newDescription === null) return;
 
     const { error } = await supabase
-        .from('markers')
-        .update({ description: newDescription })
-        .eq('id', markerId);
+      .from('markers')
+      .update({ description: newDescription })
+      .eq('id', markerId);
 
     if (error) {
-        alert('Ошибка редактирования метки');
-        console.error(error);
-        return;
+      alert('Ошибка редактирования метки');
+      console.error(error);
+      return;
     }
 
-    setMarkers(
-        markers.map((marker) =>
+    setMarkers((current) =>
+      current.map((marker) =>
         marker.id === markerId
-            ? { ...marker, description: newDescription }
-            : marker
-        )
+          ? { ...marker, description: newDescription }
+          : marker
+      )
     );
-    }
+  }
 
   useEffect(() => {
     loadMarkers();
+    loadZones();
   }, []);
 
   return (
     <div style={{ height: '100vh', width: '100%', position: 'relative' }}>
-        <div
+      <div
         style={{
-            position: 'absolute',
-            zIndex: 1000,
-            top: 10,
-            right: 10,
-            display: 'flex',
-            gap: 8,
+          position: 'absolute',
+          zIndex: 1000,
+          top: 10,
+          right: 10,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 8,
         }}
-        >
-        <input
-            list="markers-list"
-            placeholder="Найти метку..."
+      >
+        <div style={{ position: 'relative' }}>
+          <input
+            placeholder="Найти метку или зону..."
             value={search}
-            onChange={(e) => searchMarker(e.target.value)}
+            onFocus={() => setIsSearchOpen(true)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setIsSearchOpen(true);
+            }}
             onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                openSearchedMarker();
-                }
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                openSearchResult();
+              }
+              if (e.key === 'Escape') {
+                setIsSearchOpen(false);
+              }
             }}
             style={{
-                padding: '8px 12px',
-                borderRadius: 6,
-                border: '1px solid #ccc',
-                minWidth: 220,
+              padding: '8px 12px',
+              borderRadius: 6,
+              border: '1px solid #ccc',
+              minWidth: 260,
             }}
-        />
+          />
 
-        <datalist id="markers-list">
-            {suggestions.map((marker) => (
-                <option key={marker.id} value={marker.title} />
-            ))}
-        </datalist>
-
-        <button onClick={loginAdmin} style={{ padding: '8px 12px' }}>
-            Админ
-        </button>
+          {isSearchOpen && suggestions.length > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                left: 0,
+                right: 0,
+                overflow: 'hidden',
+                border: '1px solid #b89a70',
+                borderRadius: 6,
+                background: '#e6d2b5',
+                boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
+              }}
+            >
+              {suggestions.map((result) => (
+                <button
+                  key={result.key}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => openSearchResult(result)}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '8px 10px',
+                    border: 0,
+                    borderBottom: '1px solid rgba(109, 76, 47, 0.2)',
+                    background: 'transparent',
+                    color: '#2b1d0e',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {result.type === 'marker' ? '📍' : '▰'} {result.title}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <MapContainer
+        {isAdmin && creationMode === 'none' && (
+          <div style={{ position: 'relative' }}>
+            <button
+              className="map-control-btn"
+              onClick={() => setIsAddMenuOpen((current) => !current)}
+            >
+              + Добавить
+            </button>
+
+            {isAddMenuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  right: 0,
+                  minWidth: 160,
+                  overflow: 'hidden',
+                  border: '1px solid #b89a70',
+                  borderRadius: 6,
+                  background: '#e6d2b5',
+                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
+                }}
+              >
+                <button
+                  type="button"
+                  className="add-menu-item"
+                  onClick={startAddingMarker}
+                >
+                  📍 Метку
+                </button>
+                <button
+                  type="button"
+                  className="add-menu-item"
+                  onClick={startDrawingZone}
+                >
+                  ▰ Зону
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isAdmin && creationMode === 'marker' && (
+          <>
+            <div className="map-mode-hint">Кликните по карте</div>
+            <button
+              className="map-control-btn map-control-btn-danger"
+              onClick={cancelCreation}
+            >
+              Отмена
+            </button>
+          </>
+        )}
+
+        {isAdmin && creationMode === 'zone' && (
+          <>
+            <button
+              className="map-control-btn"
+              onClick={finishDrawingZone}
+              disabled={draftZone.length < 3}
+            >
+              Завершить зону ({draftZone.length})
+            </button>
+            <button
+              className="map-control-btn map-control-btn-danger"
+              onClick={cancelCreation}
+            >
+              Отмена
+            </button>
+          </>
+        )}
+
+        <button onClick={loginAdmin} className="map-control-btn">
+          {isAdmin ? 'Админ ✓' : 'Админ'}
+        </button>
+      </div>
+
+      <MapContainer
         crs={CRS.Simple}
         bounds={bounds}
         maxBounds={bounds}
@@ -265,82 +549,139 @@ export default function MapView() {
         attributionControl={false}
         doubleClickZoom={false}
         style={{ height: '100%', width: '100%' }}
-        >
+      >
         <MapController onReady={(map) => (mapRef.current = map)} />
-
-
         <ImageOverlay url="/map.png" bounds={bounds} />
 
-        <ClickHandler onAdd={addMarker} />
+        <MapInteractionHandler
+          creationMode={creationMode}
+          onAddMarker={addMarker}
+          onAddZonePoint={(point) =>
+            setDraftZone((current) => [...current, point])
+          }
+        />
+
+        {zones.map((zone) => (
+          <Polygon
+            key={zone.id}
+            ref={(layer) => {
+              if (layer) zoneRefs.current[zone.id] = layer;
+            }}
+            positions={zone.coordinates}
+            pathOptions={{
+              color: zone.color,
+              fillColor: zone.color,
+              fillOpacity: 0.28,
+              weight: 3,
+            }}
+          >
+            <Popup minWidth={220} maxWidth={320}>
+              <div style={{ width: 260, maxHeight: 180, overflowY: 'auto' }}>
+                <h3>{zone.title}</h3>
+                <p>{zone.description}</p>
+
+                {isAdmin && (
+                  <>
+                    <button
+                      className="popup-btn"
+                      onClick={() =>
+                        editZoneDescription(zone.id, zone.description)
+                      }
+                    >
+                      Редактировать описание
+                    </button>
+                    <button
+                      className="popup-btn popup-btn-danger"
+                      onClick={() => deleteZone(zone.id)}
+                    >
+                      Удалить зону
+                    </button>
+                  </>
+                )}
+              </div>
+            </Popup>
+          </Polygon>
+        ))}
+
+        {draftZone.length > 0 && (
+          <Polygon
+            positions={draftZone}
+            pathOptions={{
+              color: '#f59e0b',
+              fillColor: '#f59e0b',
+              fillOpacity: 0.2,
+              weight: 3,
+              dashArray: '8 6',
+            }}
+          />
+        )}
 
         {markers.map((marker) => {
-            const isPopupBelow = marker.y > POPUP_Y_THRESHOLD;
+          const isPopupBelow = marker.y > POPUP_Y_THRESHOLD;
+          const popupOffset: [number, number] = isPopupBelow
+            ? [0, 270]
+            : [0, 60];
+          const popupClassName = isPopupBelow
+            ? 'popup-below'
+            : 'popup-above';
 
-            const popupOffset: [number, number] = isPopupBelow ? [0, 270] : [0, 60];
-            const popupClassName = isPopupBelow ? 'popup-below' : 'popup-above';
-
-            return (
-                <Marker
-                key={marker.id}
-                position={[marker.y, marker.x]}
-                icon={icon}
-                eventHandlers={{
-                    add: (e) => {
-                    const el = e.target.getElement();
-                    if (el) {
-                        el.setAttribute('data-marker-id', String(marker.id));
-                    }
-                    },
-                }}
+          return (
+            <Marker
+              key={marker.id}
+              ref={(layer) => {
+                if (layer) markerRefs.current[marker.id] = layer;
+              }}
+              position={[marker.y, marker.x]}
+              icon={icon}
+            >
+              <Popup
+                className={popupClassName}
+                offset={popupOffset}
+                minWidth={220}
+                maxWidth={320}
+                autoPan={true}
+                keepInView={false}
+                autoPanPadding={[80, 80]}
+              >
+                <div
+                  style={{
+                    width: 260,
+                    maxHeight: 150,
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    paddingRight: 8,
+                  }}
                 >
-                <Popup
-                    className={popupClassName}
-                    offset={popupOffset}
-                    minWidth={220}
-                    maxWidth={320}
-                    autoPan={true}
-                    keepInView={false}
-                    autoPanPadding={[80, 80]}
-                >
-                    <div
-                    style={{
-                        width: 260,
-                        maxHeight: 150,
-                        overflowY: 'auto',
-                        overflowX: 'hidden',
-                        paddingRight: 8,
-                    }}
-                    >
-                    <h3>{marker.title}</h3>
+                  <h3>{marker.title}</h3>
+                  <p>{marker.description}</p>
 
-                    <p>{marker.description}</p>
+                  {isAdmin && (
+                    <>
+                      <button
+                        className="popup-btn"
+                        onClick={() =>
+                          editMarkerDescription(marker.id, marker.description)
+                        }
+                      >
+                        Редактировать описание
+                      </button>
 
-                    {isAdmin && (
-                        <>
-                            <button
-                            className="popup-btn"
-                            onClick={() =>
-                                editMarkerDescription(marker.id, marker.description)
-                            }
-                            >
-                            Редактировать описание
-                            </button>
+                      <button
+                        className="popup-btn popup-btn-danger"
+                        onClick={() => deleteMarker(marker.id)}
+                      >
+                        Удалить метку
+                      </button>
+                    </>
+                  )}
 
-                            <button
-                            className="popup-btn popup-btn-danger"
-                            onClick={() => deleteMarker(marker.id)}>
-                            Удалить метку
-                            </button>
-                        </>
-                    )}
-
-                    <Comments markerId={marker.id} isAdmin={isAdmin} />
-                    </div>
-                </Popup>
-                </Marker>
-            );
-            })}
-        </MapContainer>
+                  <Comments markerId={marker.id} isAdmin={isAdmin} />
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+      </MapContainer>
     </div>
   );
 }

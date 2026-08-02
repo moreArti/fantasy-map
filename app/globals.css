@@ -83,3 +83,60 @@ body {
 .popup-btn-danger:hover {
   background: #873838;
 }
+.map-control-btn {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 6px;
+  background: rgba(43, 29, 14, 0.72);
+  color: #f4e6cc;
+  cursor: pointer;
+  font-family: var(--font-cormorant), serif;
+  font-size: 16px;
+}
+
+.map-control-btn:hover {
+  background: rgba(90, 61, 34, 0.9);
+}
+
+.map-control-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.map-control-btn-danger {
+  background: rgba(106, 45, 45, 0.85);
+}
+
+.leaflet-interactive {
+  cursor: pointer;
+}
+
+.add-menu-item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(109, 76, 47, 0.2);
+  background: transparent;
+  color: #2b1d0e;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.add-menu-item:last-child {
+  border-bottom: 0;
+}
+
+.add-menu-item:hover {
+  background: rgba(109, 76, 47, 0.12);
+}
+
+.map-mode-hint {
+  padding: 8px 12px;
+  border: 1px solid #6d4c2f;
+  border-radius: 6px;
+  background: #e6d2b5;
+  color: #2b1d0e;
+  white-space: nowrap;
+}
