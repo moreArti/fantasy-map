@@ -140,3 +140,648 @@ body {
   color: #2b1d0e;
   white-space: nowrap;
 }
+
+/* Общая навигация */
+.app-shell {
+  min-height: 100vh;
+  background: #17100b;
+}
+
+.app-content {
+  min-height: 100vh;
+}
+
+.site-navigation {
+  position: fixed;
+  z-index: 3000;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.site-tabs,
+.site-admin-btn {
+  pointer-events: auto;
+}
+
+.site-tabs {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(230, 210, 181, 0.65);
+  border-radius: 8px;
+  background: rgba(33, 23, 15, 0.9);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.site-tab,
+.site-admin-btn {
+  border: 0;
+  color: #f4e6cc;
+  cursor: pointer;
+  font-family: var(--font-cormorant), serif;
+  font-size: 17px;
+}
+
+.site-tab {
+  padding: 9px 15px;
+  background: transparent;
+  border-right: 1px solid rgba(230, 210, 181, 0.25);
+}
+
+.site-tab:last-child {
+  border-right: 0;
+}
+
+.site-tab:hover,
+.site-tab-active {
+  background: #795737;
+}
+
+.site-admin-btn {
+  padding: 9px 14px;
+  border: 1px solid rgba(230, 210, 181, 0.65);
+  border-radius: 8px;
+  background: rgba(43, 29, 14, 0.88);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.site-admin-btn:hover {
+  background: #795737;
+}
+
+/* Подпольный рынок */
+.market-page {
+  min-height: 100vh;
+  padding: 86px 32px 48px;
+  color: #ead8b8;
+  background:
+    radial-gradient(circle at top, rgba(116, 75, 39, 0.3), transparent 42%),
+    linear-gradient(180deg, #21160f 0%, #120d09 100%);
+  font-family: var(--font-cormorant), serif;
+}
+
+.market-header {
+  width: min(1280px, 100%);
+  margin: 0 auto 30px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid rgba(218, 183, 130, 0.35);
+  padding-bottom: 18px;
+}
+
+.market-header h1 {
+  margin: 0;
+  color: #f2dfbd;
+  font-size: clamp(36px, 5vw, 64px);
+  line-height: 0.95;
+}
+
+.market-kicker {
+  margin: 0 0 8px;
+  color: #b99566;
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.market-add-btn,
+.market-submit-btn,
+.market-secondary-btn,
+.market-small-btn {
+  border-radius: 7px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-family: var(--font-cormorant), serif;
+  font-size: 17px;
+}
+
+.market-add-btn,
+.market-submit-btn {
+  border: 1px solid #d2aa72;
+  background: #77512f;
+  color: #fff0d4;
+}
+
+.market-add-btn:hover,
+.market-submit-btn:hover {
+  background: #93663d;
+}
+
+.market-submit-btn:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.market-status {
+  width: min(1280px, 100%);
+  margin: 70px auto;
+  padding: 28px;
+  border: 1px dashed rgba(218, 183, 130, 0.45);
+  border-radius: 12px;
+  color: #cdb793;
+  text-align: center;
+  font-size: 22px;
+}
+
+.market-grid {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.market-card {
+  overflow: hidden;
+  border: 1px solid rgba(205, 166, 109, 0.48);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #312116 0%, #25180f 100%);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.35);
+}
+
+.market-card-image-wrap {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #110c08;
+}
+
+.market-card-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  transition: transform 0.25s ease;
+}
+
+.market-card:hover .market-card-image {
+  transform: scale(1.035);
+}
+
+.market-card-body {
+  padding: 18px;
+}
+
+.market-card-body h2 {
+  margin: 0 0 10px;
+  color: #f2dfbd;
+  font-size: 28px;
+  line-height: 1.05;
+}
+
+.market-card-description {
+  min-height: 70px;
+  margin: 0 0 18px;
+  color: #cdb793;
+  font-size: 18px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.market-card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-top: 1px solid rgba(205, 166, 109, 0.25);
+  padding-top: 14px;
+}
+
+.market-price {
+  color: #e5bc75;
+  font-size: 24px;
+}
+
+.market-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.market-small-btn {
+  padding: 6px 9px;
+  border: 1px solid #8f6843;
+  background: #49311f;
+  color: #ead8b8;
+  font-size: 15px;
+}
+
+.market-small-btn-danger {
+  border-color: #7f4040;
+  background: #5d2929;
+}
+
+.market-modal-backdrop {
+  position: fixed;
+  z-index: 5000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 5, 3, 0.78);
+  backdrop-filter: blur(5px);
+}
+
+.market-modal {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border: 1px solid #a57a4c;
+  border-radius: 12px;
+  background: #2a1c12;
+  color: #ead8b8;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
+}
+
+.market-modal-header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 20px;
+  border-bottom: 1px solid rgba(205, 166, 109, 0.3);
+  background: #2a1c12;
+}
+
+.market-modal-header h2 {
+  margin: 0;
+  color: #f2dfbd;
+  font-size: 30px;
+}
+
+.market-modal-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: #d9bf99;
+  cursor: pointer;
+  font-size: 30px;
+}
+
+.market-form {
+  display: grid;
+  gap: 17px;
+  padding: 20px;
+}
+
+.market-form label {
+  display: grid;
+  gap: 7px;
+  color: #e0c7a1;
+  font-size: 18px;
+}
+
+.market-form input,
+.market-form textarea {
+  width: 100%;
+  border: 1px solid #795737;
+  border-radius: 7px;
+  padding: 10px 11px;
+  background: #160f0a;
+  color: #f4e6cc;
+  font: inherit;
+}
+
+.market-form textarea {
+  resize: vertical;
+}
+
+.market-form input[type='file'] {
+  padding: 8px;
+}
+
+.market-form-preview {
+  width: 100%;
+  max-height: 260px;
+  border: 1px solid rgba(205, 166, 109, 0.35);
+  border-radius: 8px;
+  object-fit: contain;
+  background: #110c08;
+}
+
+.market-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.market-secondary-btn {
+  border: 1px solid #76583b;
+  background: transparent;
+  color: #d9c4a3;
+}
+
+@media (max-width: 720px) {
+  .site-navigation {
+    align-items: flex-start;
+  }
+
+  .site-tab,
+  .site-admin-btn {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+  .market-page {
+    padding: 82px 14px 32px;
+  }
+
+  .market-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .market-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Жители Зыккиры */
+.residents-page {
+  min-height: 100vh;
+  padding: 86px 32px 48px;
+  color: #ead8b8;
+  background:
+    radial-gradient(circle at top, rgba(91, 76, 48, 0.32), transparent 42%),
+    linear-gradient(180deg, #211a10 0%, #110d08 100%);
+  font-family: var(--font-cormorant), serif;
+}
+
+.residents-header {
+  width: min(1280px, 100%);
+  margin: 0 auto 30px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid rgba(218, 183, 130, 0.35);
+  padding-bottom: 18px;
+}
+
+.residents-header h1 {
+  margin: 0;
+  color: #f2dfbd;
+  font-size: clamp(36px, 5vw, 64px);
+  line-height: 0.95;
+}
+
+.residents-kicker {
+  margin: 0 0 8px;
+  color: #b99566;
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.residents-add-btn,
+.residents-submit-btn,
+.residents-secondary-btn,
+.resident-small-btn {
+  border-radius: 7px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-family: var(--font-cormorant), serif;
+  font-size: 17px;
+}
+
+.residents-add-btn,
+.residents-submit-btn {
+  border: 1px solid #d2aa72;
+  background: #77512f;
+  color: #fff0d4;
+}
+
+.residents-add-btn:hover,
+.residents-submit-btn:hover {
+  background: #93663d;
+}
+
+.residents-submit-btn:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.residents-status {
+  width: min(1280px, 100%);
+  margin: 70px auto;
+  padding: 28px;
+  border: 1px dashed rgba(218, 183, 130, 0.45);
+  border-radius: 12px;
+  color: #cdb793;
+  text-align: center;
+  font-size: 22px;
+}
+
+.residents-grid {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 24px;
+}
+
+.resident-card {
+  overflow: hidden;
+  border: 1px solid rgba(205, 166, 109, 0.48);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #312619 0%, #251b11 100%);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.35);
+}
+
+.resident-card-image-wrap {
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: #110c08;
+}
+
+.resident-card-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.resident-card:hover .resident-card-image {
+  transform: scale(1.035);
+}
+
+.resident-card-body {
+  padding: 18px;
+}
+
+.resident-card-body h2 {
+  margin: 0 0 10px;
+  color: #f2dfbd;
+  font-size: 29px;
+  line-height: 1.05;
+}
+
+.resident-card-body p {
+  min-height: 72px;
+  margin: 0 0 18px;
+  color: #cdb793;
+  font-size: 18px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.resident-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid rgba(205, 166, 109, 0.25);
+  padding-top: 14px;
+}
+
+.resident-small-btn {
+  padding: 6px 9px;
+  border: 1px solid #8f6843;
+  background: #49311f;
+  color: #ead8b8;
+  font-size: 15px;
+}
+
+.resident-small-btn-danger {
+  border-color: #7f4040;
+  background: #5d2929;
+}
+
+.residents-modal-backdrop {
+  position: fixed;
+  z-index: 5000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 5, 3, 0.78);
+  backdrop-filter: blur(5px);
+}
+
+.residents-modal {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border: 1px solid #a57a4c;
+  border-radius: 12px;
+  background: #2a1c12;
+  color: #ead8b8;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
+}
+
+.residents-modal-header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 20px;
+  border-bottom: 1px solid rgba(205, 166, 109, 0.3);
+  background: #2a1c12;
+}
+
+.residents-modal-header h2 {
+  margin: 0;
+  color: #f2dfbd;
+  font-size: 30px;
+}
+
+.residents-modal-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: #d9bf99;
+  cursor: pointer;
+  font-size: 30px;
+}
+
+.residents-form {
+  display: grid;
+  gap: 17px;
+  padding: 20px;
+}
+
+.residents-form label {
+  display: grid;
+  gap: 7px;
+  color: #e0c7a1;
+  font-size: 18px;
+}
+
+.residents-form input,
+.residents-form textarea {
+  width: 100%;
+  border: 1px solid #795737;
+  border-radius: 7px;
+  padding: 10px 11px;
+  background: #160f0a;
+  color: #f4e6cc;
+  font: inherit;
+}
+
+.residents-form textarea {
+  resize: vertical;
+}
+
+.residents-form input[type='file'] {
+  padding: 8px;
+}
+
+.residents-form-preview {
+  width: 100%;
+  max-height: 330px;
+  border: 1px solid rgba(205, 166, 109, 0.35);
+  border-radius: 8px;
+  object-fit: contain;
+  background: #110c08;
+}
+
+.residents-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.residents-secondary-btn {
+  border: 1px solid #76583b;
+  background: transparent;
+  color: #d9c4a3;
+}
+
+@media (max-width: 900px) {
+  .site-tabs {
+    max-width: calc(100vw - 130px);
+    overflow-x: auto;
+  }
+
+  .site-tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 720px) {
+  .residents-page {
+    padding: 82px 14px 32px;
+  }
+
+  .residents-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .residents-grid {
+    grid-template-columns: 1fr;
+  }
+}

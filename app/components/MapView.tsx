@@ -87,12 +87,17 @@ function MapController({ onReady }: { onReady: (map: L.Map) => void }) {
   return null;
 }
 
-export default function MapView() {
+export default function MapView({
+  isAdmin,
+  onAdminClick,
+}: {
+  isAdmin: boolean;
+  onAdminClick: () => void;
+}) {
   const [markers, setMarkers] = useState<MarkerType[]>([]);
   const [zones, setZones] = useState<ZoneType[]>([]);
   const [creationMode, setCreationMode] = useState<CreationMode>('none');
   const [draftZone, setDraftZone] = useState<ZonePoint[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -136,17 +141,6 @@ export default function MapView() {
         })
         .slice(0, 5)
     : [];
-
-  function loginAdmin() {
-    const password = prompt('Пароль админа');
-
-    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
-      setIsAdmin(true);
-      alert('Админ-режим включён');
-    } else {
-      alert('Неверный пароль');
-    }
-  }
 
   function cancelCreation() {
     setCreationMode('none');
@@ -394,11 +388,21 @@ export default function MapView() {
           top: 10,
           right: 10,
           display: 'flex',
-          alignItems: 'flex-start',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
           gap: 8,
+          flexWrap: 'nowrap',
+          maxWidth: 'calc(100% - 520px)',
         }}
       >
-        <div style={{ position: 'relative' }}>
+        <div
+          style={{
+            position: 'relative',
+            flex: '0 1 520px',
+            width: 'clamp(280px, 34vw, 520px)',
+            minWidth: 0,
+          }}
+        >
           <input
             placeholder="Найти метку или зону..."
             value={search}
@@ -420,7 +424,9 @@ export default function MapView() {
               padding: '8px 12px',
               borderRadius: 6,
               border: '1px solid #ccc',
-              minWidth: 260,
+              width: '100%',
+              minWidth: 0,
+              boxSizing: 'border-box',
             }}
           />
 
@@ -463,8 +469,17 @@ export default function MapView() {
           )}
         </div>
 
+        <button
+          type="button"
+          className="map-control-btn"
+          onClick={onAdminClick}
+          style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }}
+        >
+          {isAdmin ? 'Админ ✓' : 'Админ'}
+        </button>
+
         {isAdmin && creationMode === 'none' && (
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', flex: '0 0 auto' }}>
             <button
               className="map-control-btn"
               onClick={() => setIsAddMenuOpen((current) => !current)}
@@ -535,9 +550,6 @@ export default function MapView() {
           </>
         )}
 
-        <button onClick={loginAdmin} className="map-control-btn">
-          {isAdmin ? 'Админ ✓' : 'Админ'}
-        </button>
       </div>
 
       <MapContainer
